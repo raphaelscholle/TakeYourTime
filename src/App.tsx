@@ -1,10 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
 import { Icon, LatLngExpression } from 'leaflet';
-import { BaseStation, Beacon, EmployeeLocation } from './types';
+import { BaseStation, Beacon, EmployeeLocation, MqttBroker } from './types';
 import { calculateTrilateration } from './lib/trilateration';
 import { sampleBaseStations, sampleBeacons, sampleConstructionSites } from './lib/sampleData';
 import { formatMillis } from './lib/time';
+import {
+  CreateBasestationPayload,
+  CreateBrokerPayload,
+  createBasestation,
+  createBroker,
+  fetchBrokers,
+} from './lib/backend';
+import { SettingsMenu } from './components/SettingsMenu';
 
 const defaultCenter: LatLngExpression = [48.1351, 11.582];
 const breakStations = new Set(['munich-break', 'augsburg-break']);
@@ -41,6 +49,12 @@ export default function App() {
   const [selectedBeaconId, setSelectedBeaconId] = useState<string | undefined>(
     sampleBeacons[0]?.id
   );
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [apiBaseUrl, setApiBaseUrl] = useState('http://localhost:4000');
+  const [brokers, setBrokers] = useState<MqttBroker[]>([]);
+  const [selectedBrokerId, setSelectedBrokerId] = useState<string | undefined>();
+  const [backendStatus, setBackendStatus] = useState<string | undefined>();
+  const [loadingBrokers, setLoadingBrokers] = useState(false);
 
   const currentSite = useMemo(
     () => sampleConstructionSites.find((site) => site.id === selectedSiteId),
@@ -63,6 +77,48 @@ export default function App() {
       siteBeacons.some((beacon) => beacon.id === prev) ? prev : siteBeacons[0]?.id
     );
   }, [selectedSiteId, siteBeacons]);
+
+  const refreshBrokers = useCallback(async () => {
+    setLoadingBrokers(true);
+    try {
+      const data = await fetchBrokers(apiBaseUrl.trim());
+      setBrokers(data);
+      if (data.length > 0 && !data.some((broker) => broker.id === selectedBrokerId)) {
+        setSelectedBrokerId(data[0].id);
+      }
+      setBackendStatus(`Backend geladen (${data.length} Broker)`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unbekannter Fehler';
+      setBackendStatus(`Backend-Fehler: ${message}`);
+      setBrokers([]);
+    } finally {
+      setLoadingBrokers(false);
+    }
+  }, [apiBaseUrl, selectedBrokerId]);
+
+  useEffect(() => {
+    if (!settingsOpen) return;
+    refreshBrokers();
+  }, [settingsOpen, refreshBrokers]);
+
+  const handleCreateBroker = useCallback(
+    async (payload: CreateBrokerPayload) => {
+      await createBroker(apiBaseUrl.trim(), payload);
+      setBackendStatus(`Broker "${payload.name}" gespeichert`);
+      await refreshBrokers();
+    },
+    [apiBaseUrl, refreshBrokers]
+  );
+
+  const handleCreateBasestation = useCallback(
+    async (payload: CreateBasestationPayload) => {
+      if (!selectedBrokerId) return;
+      await createBasestation(apiBaseUrl.trim(), selectedBrokerId, payload);
+      setBackendStatus(`Sensor "${payload.name}" angelegt`);
+      await refreshBrokers();
+    },
+    [apiBaseUrl, refreshBrokers, selectedBrokerId]
+  );
 
   const stationNameById = useMemo(() => {
     const map: Record<string, string> = {};
@@ -138,6 +194,13 @@ export default function App() {
           <p className="eyebrow">Workday Replay</p>
           <div className="header-row">
             <h1>Personen &amp; Wege auf der Baustelle</h1>
+            <button
+              type="button"
+              className="pill outline"
+              onClick={() => setSettingsOpen((prev) => !prev)}
+            >
+              {settingsOpen ? 'Einstellungen schließen' : 'Backend-Einstellungen'}
+            </button>
             <select
               value={selectedSiteId}
               onChange={(e) => setSelectedSiteId(e.target.value)}
@@ -180,6 +243,22 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {settingsOpen && (
+        <SettingsMenu
+          apiBaseUrl={apiBaseUrl}
+          brokers={brokers}
+          sites={sampleConstructionSites}
+          selectedBrokerId={selectedBrokerId}
+          statusMessage={backendStatus}
+          loading={loadingBrokers}
+          onApiBaseUrlChange={setApiBaseUrl}
+          onSelectBroker={setSelectedBrokerId}
+          onRefresh={refreshBrokers}
+          onCreateBroker={handleCreateBroker}
+          onCreateBasestation={handleCreateBasestation}
+        />
+      )}
 
       <main className="layout">
         <section className="panel">

@@ -1,5 +1,7 @@
 import { LatLngLiteral } from 'leaflet';
 
+export type LatLng = LatLngLiteral;
+
 export type ConstructionSite = {
   id: string;
   name: string;
@@ -12,7 +14,7 @@ export type BaseStation = {
   name: string;
   position: LatLngLiteral;
   siteId: string;
-  coverageMeters?: number;
+  coverageMeters?: number | null;
 };
 
 export type Beacon = {
@@ -39,4 +41,14 @@ export type BeaconVisit = {
   endedAt?: number;
   durationMs?: number;
   kind?: 'work' | 'break';
+};
+
+export type MqttBroker = {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  username: string | null;
+  password: string | null;
+  basestations: BaseStation[];
 };

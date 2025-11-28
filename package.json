@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
-    "start:api": "node server.mjs"
+    "start:api": "node server.mjs",
+    "dev:all": "./scripts/dev-all.sh"
   },
   "dependencies": {
     "cors": "^2.8.5",
