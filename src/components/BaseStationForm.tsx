@@ -39,13 +39,16 @@ export function BaseStationForm({
         </button>
       </div>
 
-      <ul className="list">
-        {baseStations.map((station) => (
-          <li key={station.id}>
-            <strong>{station.name}</strong>
-            <span className="mono">
-              {station.position.lat.toFixed(4)} / {station.position.lng.toFixed(4)}
-            </span>
+      <ul className="list station-list">
+        {baseStations.map((station, index) => (
+          <li key={station.id} className="list-tile">
+            <div>
+              <div className="list-title">{station.name}</div>
+              <div className="muted mono small">
+                {station.position.lat.toFixed(4)} / {station.position.lng.toFixed(4)}
+              </div>
+            </div>
+            <span className="pill subtle">#{String(index + 1).padStart(2, '0')}</span>
           </li>
         ))}
         {baseStations.length === 0 && <li className="muted">Noch keine Stationen</li>}

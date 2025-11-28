@@ -44,7 +44,17 @@ export default function App() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | undefined>(sampleEmployees[0]?.id);
   const [employeeLocations, setEmployeeLocations] = useState<Record<string, EmployeeLocation | undefined>>({});
 
+  const activeLocations = useMemo(() => Object.entries(employeeLocations), [employeeLocations]);
   const selectedEmployee = employees.find((emp) => emp.id === selectedEmployeeId);
+  const totalDistanceEntries = useMemo(
+    () => employees.reduce((sum, emp) => sum + Object.keys(emp.distances).length, 0),
+    [employees]
+  );
+  const triangulatedCount = useMemo(
+    () => activeLocations.filter(([, location]) => Boolean(location)).length,
+    [activeLocations]
+  );
+  const activeTimers = useMemo(() => employees.filter((emp) => emp.timeStartedAt).length, [employees]);
 
   const handlePlacementClick = (coords: LatLngLiteral) => {
     if (!placementMode || !pendingStationName.trim()) return;
@@ -114,8 +124,6 @@ export default function App() {
     setEmployeeLocations((prev) => ({ ...prev, [employeeId]: estimated }));
   };
 
-  const activeLocations = useMemo(() => Object.entries(employeeLocations), [employeeLocations]);
-
   useEffect(() => {
     employees.forEach((employee) => computeEmployeeLocation(employee.id));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -124,12 +132,46 @@ export default function App() {
   return (
     <div className="page">
       <header className="header">
-        <div>
-          <h1>BLE-Triangulation</h1>
+        <div className="hero">
+          <p className="eyebrow">Live Operations Cockpit</p>
+          <div className="header-row">
+            <h1>BLE-Triangulation</h1>
+            <div className="chip-group">
+              <span className={`pill outline ${placementMode ? 'success' : ''}`}>
+                {placementMode ? 'Platzierungsmodus aktiv' : 'Platzierungsmodus aus'}
+              </span>
+              <span className="pill subtle">
+                Aktiver Mitarbeiter: {selectedEmployee?.name ?? '–'}
+              </span>
+            </div>
+          </div>
           <p className="subtitle">
             Basistationen setzen, BLE-Distanzen pflegen und Aufenthaltsdauer pro Mitarbeiter
-            erfassen.
+            erfassen. Präzise Positionierung mit einem klaren, professionellen Control-Center.
           </p>
+        </div>
+
+        <div className="stat-grid">
+          <div className="stat-card">
+            <p className="stat-label">Basistationen</p>
+            <p className="stat-value">{baseStations.length}</p>
+            <span className="pill subtle">auf der Karte platziert</span>
+          </div>
+          <div className="stat-card">
+            <p className="stat-label">Mitarbeiter</p>
+            <p className="stat-value">{employees.length}</p>
+            <span className="pill subtle">inkl. Live-Timer: {activeTimers}</span>
+          </div>
+          <div className="stat-card">
+            <p className="stat-label">Distanzmessungen</p>
+            <p className="stat-value">{totalDistanceEntries}</p>
+            <span className="pill subtle">für die Triangulation</span>
+          </div>
+          <div className="stat-card">
+            <p className="stat-label">Trianguliert</p>
+            <p className="stat-value">{triangulatedCount}</p>
+            <span className="pill subtle">geschätzte Positionen</span>
+          </div>
         </div>
       </header>
 
@@ -155,44 +197,63 @@ export default function App() {
           />
         </section>
 
-        <section className="map">
-          <MapContainer center={defaultCenter} zoom={12} scrollWheelZoom style={{ height: '100%' }}>
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> Contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+        <section className="map-shell">
+          <div className="map-header">
+            <div>
+              <p className="eyebrow">Live-Karte</p>
+              <h3>Triangulation &amp; Positionen</h3>
+              <p className="muted">
+                Präzise Karte mit OpenStreetMap-Basislayer. Im Platzierungsmodus einfach auf die Karte
+                klicken, um neue Stationen zu setzen.
+              </p>
+            </div>
+            <div className="chip-group">
+              <span className="pill subtle">OpenStreetMap Kartenmaterial</span>
+              <span className={`pill outline ${placementMode ? 'success' : ''}`}>
+                {placementMode ? 'Klicken zum Platzieren' : 'Platzierungsmodus deaktiviert'}
+              </span>
+            </div>
+          </div>
 
-            {placementMode && pendingStationName && (
-              <MapClickHandler onClick={handlePlacementClick} />
-            )}
+          <div className="map">
+            <MapContainer center={defaultCenter} zoom={12} scrollWheelZoom style={{ height: '100%' }}>
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> Contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
 
-            {baseStations.map((station) => (
-              <Marker key={station.id} position={station.position} icon={baseIcon}>
-                <Popup>
-                  <strong>{station.name}</strong>
-                  <br />
-                  {station.position.lat.toFixed(5)}, {station.position.lng.toFixed(5)}
-                </Popup>
-              </Marker>
-            ))}
+              {placementMode && pendingStationName && (
+                <MapClickHandler onClick={handlePlacementClick} />
+              )}
 
-            {activeLocations.map(([empId, location]) => {
-              if (!location) return null;
-              const employee = employees.find((e) => e.id === empId);
-              if (!employee) return null;
-
-              return (
-                <Marker key={empId} position={location.position} icon={baseIcon}>
+              {baseStations.map((station) => (
+                <Marker key={station.id} position={station.position} icon={baseIcon}>
                   <Popup>
-                    <strong>{employee.name}</strong>
-                    <br />Geschätzte Position aus {location.usedStations.length} Stationen
+                    <strong>{station.name}</strong>
                     <br />
-                    Distanzfehler: {location.estimatedError.toFixed(1)} m
+                    {station.position.lat.toFixed(5)}, {station.position.lng.toFixed(5)}
                   </Popup>
                 </Marker>
-              );
-            })}
-          </MapContainer>
+              ))}
+
+              {activeLocations.map(([empId, location]) => {
+                if (!location) return null;
+                const employee = employees.find((e) => e.id === empId);
+                if (!employee) return null;
+
+                return (
+                  <Marker key={empId} position={location.position} icon={baseIcon}>
+                    <Popup>
+                      <strong>{employee.name}</strong>
+                      <br />Geschätzte Position aus {location.usedStations.length} Stationen
+                      <br />
+                      Distanzfehler: {location.estimatedError.toFixed(1)} m
+                    </Popup>
+                  </Marker>
+                );
+              })}
+            </MapContainer>
+          </div>
         </section>
       </main>
 
