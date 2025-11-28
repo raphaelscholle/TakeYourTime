@@ -1,4 +1,4 @@
-import { BaseStation } from '../App';
+import { BaseStation } from '../types';
 
 interface Props {
   baseStations: BaseStation[];

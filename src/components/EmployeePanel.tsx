@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { BaseStation, Employee } from '../App';
+import { BaseStation, Employee } from '../types';
 
 interface Props {
   baseStations: BaseStation[];

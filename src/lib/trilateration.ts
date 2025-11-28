@@ -1,5 +1,5 @@
 import { LatLngLiteral } from 'leaflet';
-import { BaseStation } from '../App';
+import { BaseStation } from '../types';
 import { EmployeeLocation } from '../types';
 
 const earthRadius = 6371000; // meters
