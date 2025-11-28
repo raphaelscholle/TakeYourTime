@@ -38,4 +38,5 @@ export type BeaconVisit = {
   startedAt: number;
   endedAt?: number;
   durationMs?: number;
+  kind?: 'work' | 'break';
 };

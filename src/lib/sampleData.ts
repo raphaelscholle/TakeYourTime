@@ -15,6 +15,8 @@ export const sampleConstructionSites: ConstructionSite[] = [
   },
 ];
 
+const baseDay = new Date('2024-05-06T06:00:00.000Z').getTime();
+
 export const sampleBaseStations: BaseStation[] = [
   {
     id: 'beacon-east',
@@ -45,6 +47,13 @@ export const sampleBaseStations: BaseStation[] = [
     coverageMeters: 160,
   },
   {
+    id: 'munich-break',
+    name: 'Pausenfläche',
+    position: { lat: 48.139, lng: 11.5878 },
+    siteId: 'site-munich',
+    coverageMeters: 80,
+  },
+  {
     id: 'augsburg-a',
     name: 'Tor A',
     position: { lat: 48.3705, lng: 10.8973 },
@@ -65,6 +74,13 @@ export const sampleBaseStations: BaseStation[] = [
     siteId: 'site-augsburg',
     coverageMeters: 140,
   },
+  {
+    id: 'augsburg-break',
+    name: 'Kantine',
+    position: { lat: 48.364, lng: 10.896 },
+    siteId: 'site-augsburg',
+    coverageMeters: 90,
+  },
 ];
 
 export const sampleBeacons: Beacon[] = [
@@ -78,10 +94,42 @@ export const sampleBeacons: Beacon[] = [
       'beacon-west': 120,
       'beacon-south': 80,
       'beacon-north': 110,
+      'munich-break': 140,
     },
     activeStations: {},
-    totalMs: 0,
-    visits: [],
+    totalMs: 8.75 * 60 * 60 * 1000,
+    visits: [
+      {
+        stationId: 'beacon-east',
+        startedAt: baseDay + 8 * 60 * 60 * 1000 + 5 * 60 * 1000,
+        endedAt: baseDay + 10 * 60 * 60 * 1000 + 15 * 60 * 1000,
+        kind: 'work',
+      },
+      {
+        stationId: 'munich-break',
+        startedAt: baseDay + 10 * 60 * 60 * 1000 + 15 * 60 * 1000,
+        endedAt: baseDay + 10 * 60 * 60 * 1000 + 45 * 60 * 1000,
+        kind: 'break',
+      },
+      {
+        stationId: 'beacon-west',
+        startedAt: baseDay + 10 * 60 * 60 * 1000 + 45 * 60 * 1000,
+        endedAt: baseDay + 12 * 60 * 60 * 1000 + 30 * 60 * 1000,
+        kind: 'work',
+      },
+      {
+        stationId: 'munich-break',
+        startedAt: baseDay + 12 * 60 * 60 * 1000 + 30 * 60 * 1000,
+        endedAt: baseDay + 13 * 60 * 60 * 1000,
+        kind: 'break',
+      },
+      {
+        stationId: 'beacon-north',
+        startedAt: baseDay + 13 * 60 * 60 * 1000,
+        endedAt: baseDay + 16 * 60 * 60 * 1000 + 20 * 60 * 1000,
+        kind: 'work',
+      },
+    ],
   },
   {
     id: 'ben',
@@ -92,10 +140,42 @@ export const sampleBeacons: Beacon[] = [
       'beacon-east': 45,
       'beacon-west': 95,
       'beacon-south': 70,
+      'munich-break': 100,
     },
     activeStations: {},
-    totalMs: 0,
-    visits: [],
+    totalMs: 8.25 * 60 * 60 * 1000,
+    visits: [
+      {
+        stationId: 'beacon-south',
+        startedAt: baseDay + 7 * 60 * 60 * 1000 + 50 * 60 * 1000,
+        endedAt: baseDay + 10 * 60 * 60 * 1000,
+        kind: 'work',
+      },
+      {
+        stationId: 'munich-break',
+        startedAt: baseDay + 10 * 60 * 60 * 1000,
+        endedAt: baseDay + 10 * 60 * 60 * 1000 + 30 * 60 * 1000,
+        kind: 'break',
+      },
+      {
+        stationId: 'beacon-east',
+        startedAt: baseDay + 10 * 60 * 60 * 1000 + 30 * 60 * 1000,
+        endedAt: baseDay + 12 * 60 * 60 * 1000 + 10 * 60 * 1000,
+        kind: 'work',
+      },
+      {
+        stationId: 'munich-break',
+        startedAt: baseDay + 12 * 60 * 60 * 1000 + 10 * 60 * 1000,
+        endedAt: baseDay + 12 * 60 * 60 * 1000 + 50 * 60 * 1000,
+        kind: 'break',
+      },
+      {
+        stationId: 'beacon-west',
+        startedAt: baseDay + 12 * 60 * 60 * 1000 + 50 * 60 * 1000,
+        endedAt: baseDay + 16 * 60 * 60 * 1000 + 5 * 60 * 1000,
+        kind: 'work',
+      },
+    ],
   },
   {
     id: 'carla',
@@ -106,9 +186,41 @@ export const sampleBeacons: Beacon[] = [
       'augsburg-a': 60,
       'augsburg-b': 130,
       'augsburg-c': 90,
+      'augsburg-break': 70,
     },
     activeStations: {},
-    totalMs: 0,
-    visits: [],
+    totalMs: 7.5 * 60 * 60 * 1000,
+    visits: [
+      {
+        stationId: 'augsburg-a',
+        startedAt: baseDay + 8 * 60 * 60 * 1000 + 10 * 60 * 1000,
+        endedAt: baseDay + 10 * 60 * 60 * 1000 + 20 * 60 * 1000,
+        kind: 'work',
+      },
+      {
+        stationId: 'augsburg-break',
+        startedAt: baseDay + 10 * 60 * 60 * 1000 + 20 * 60 * 1000,
+        endedAt: baseDay + 10 * 60 * 60 * 1000 + 50 * 60 * 1000,
+        kind: 'break',
+      },
+      {
+        stationId: 'augsburg-c',
+        startedAt: baseDay + 10 * 60 * 60 * 1000 + 50 * 60 * 1000,
+        endedAt: baseDay + 12 * 60 * 60 * 1000 + 15 * 60 * 1000,
+        kind: 'work',
+      },
+      {
+        stationId: 'augsburg-break',
+        startedAt: baseDay + 12 * 60 * 60 * 1000 + 15 * 60 * 1000,
+        endedAt: baseDay + 12 * 60 * 60 * 1000 + 55 * 60 * 1000,
+        kind: 'break',
+      },
+      {
+        stationId: 'augsburg-b',
+        startedAt: baseDay + 12 * 60 * 60 * 1000 + 55 * 60 * 1000,
+        endedAt: baseDay + 15 * 60 * 60 * 1000 + 20 * 60 * 1000,
+        kind: 'work',
+      },
+    ],
   },
 ];
