@@ -2,6 +2,7 @@ import { BaseStation } from '../types';
 
 interface Props {
   baseStations: BaseStation[];
+  siteName?: string;
   placementMode: boolean;
   pendingName: string;
   onNameChange: (value: string) => void;
@@ -10,6 +11,7 @@ interface Props {
 
 export function BaseStationForm({
   baseStations,
+  siteName,
   placementMode,
   pendingName,
   onNameChange,
@@ -17,7 +19,7 @@ export function BaseStationForm({
 }: Props) {
   return (
     <div className="card">
-      <h2>Basistationen</h2>
+      <h2>Basistationen {siteName && <span className="muted">· {siteName}</span>}</h2>
       <p className="hint">
         Name eintragen, "Position setzen" aktivieren und auf die Karte klicken, um einen neuen
         Standort anzulegen.
