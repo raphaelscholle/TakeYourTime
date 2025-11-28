@@ -61,10 +61,14 @@ export function EmployeePanel({
               className={`employee ${isActive ? 'active' : ''}`}
               onClick={() => onSelectEmployee(employee.id)}
             >
-              <div>
-                <strong>{employee.name}</strong>
+              <div className="employee-meta">
+                <div className="employee-line">
+                  <span className={`status-dot ${isRunning ? 'success' : ''}`} />
+                  <strong>{employee.name}</strong>
+                </div>
                 <div className="muted small">
-                  {Object.keys(employee.distances).length} Distanzmessungen
+                  {Object.keys(employee.distances).length} Distanzmessungen ·{' '}
+                  {isRunning ? 'Timer läuft' : 'Bereit zum Start'}
                 </div>
               </div>
               <button
