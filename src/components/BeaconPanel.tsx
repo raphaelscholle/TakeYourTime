@@ -40,7 +40,7 @@ export function BeaconPanel({
   return (
     <div className="card">
       <div className="employee-header">
-        <h2>BLE-Beacons &amp; Arbeiter</h2>
+        <h2>BLE-Beacons &amp; Arbeiter · Debug</h2>
         <div className="form-row">
           <input
             value={workerName}
@@ -65,7 +65,7 @@ export function BeaconPanel({
       <div className="employee-list">
         {beacons.map((beacon) => {
           const isActive = beacon.id === selectedBeaconId;
-          const isRunning = Boolean(beacon.timeStartedAt);
+          const activeCount = Object.keys(beacon.activeStations ?? {}).length;
           return (
             <div
               key={beacon.id}
@@ -74,14 +74,14 @@ export function BeaconPanel({
             >
               <div className="employee-meta">
                 <div className="employee-line">
-                  <span className={`status-dot ${isRunning ? 'success' : ''}`} />
+                  <span className={`status-dot ${activeCount ? 'success' : ''}`} />
                   <strong>{beacon.worker}</strong>
                   <span className="pill subtle">{beacon.label}</span>
                 </div>
                 <div className="muted small">
                   {Object.keys(beacon.distances).length} Distanzmessungen ·{' '}
-                  {isRunning
-                    ? `In Reichweite von ${beacon.activeBaseStationId ?? 'Station'}`
+                  {activeCount
+                    ? `In Reichweite von ${activeCount} Station${activeCount === 1 ? '' : 'en'}`
                     : 'Bereit zum Scan'}
                 </div>
               </div>
@@ -104,6 +104,11 @@ export function BeaconPanel({
                 {station.name}
                 <span className="muted mono small"> · {station.coverageMeters ?? 120} m Radius</span>
               </label>
+              <span className="pill subtle">
+                {selectedBeacon.activeStations?.[station.id]
+                  ? 'in Reichweite'
+                  : 'außerhalb'}
+              </span>
               <input
                 type="number"
                 min="0"
@@ -117,7 +122,7 @@ export function BeaconPanel({
                 className="secondary"
                 onClick={() => onToggleRange(selectedBeacon.id, station.id)}
               >
-                {selectedBeacon.activeBaseStationId === station.id ? 'Bereich verlassen' : 'Im Bereich'}
+                {selectedBeacon.activeStations?.[station.id] ? 'Bereich verlassen' : 'Im Bereich'}
               </button>
             </div>
           ))}

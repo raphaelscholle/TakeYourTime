@@ -81,20 +81,65 @@ export default function App() {
       ).length,
     [activeLocations, siteBeacons]
   );
-  const activeTimers = useMemo(() => siteBeacons.filter((emp) => emp.timeStartedAt).length, [siteBeacons]);
+  const activeTimers = useMemo(
+    () => siteBeacons.filter((emp) => Object.keys(emp.activeStations ?? {}).length > 0).length,
+    [siteBeacons]
+  );
 
   const getElapsedMs = (beacon: Beacon) =>
-    beacon.totalMs + (beacon.timeStartedAt ? now - beacon.timeStartedAt : 0);
+    beacon.totalMs + (beacon.presenceStartedAt ? now - beacon.presenceStartedAt : 0);
 
   const prioritizedBeacons = useMemo(
     () =>
       [...siteBeacons].sort((a, b) => {
-        const aActive = Boolean(a.activeBaseStationId);
-        const bActive = Boolean(b.activeBaseStationId);
+        const aActive = Object.keys(a.activeStations ?? {}).length > 0;
+        const bActive = Object.keys(b.activeStations ?? {}).length > 0;
         if (aActive !== bActive) return Number(bActive) - Number(aActive);
         return getElapsedMs(b) - getElapsedMs(a);
       }),
     [siteBeacons, now]
+  );
+
+  const stationNameById = useMemo(() => {
+    const map: Record<string, string> = {};
+    baseStations.forEach((station) => {
+      map[station.id] = station.name;
+    });
+    return map;
+  }, [baseStations]);
+
+  const visitHistory = useMemo(
+    () =>
+      beacons
+        .filter((beacon) => beacon.siteId === selectedSiteId)
+        .flatMap((beacon) => {
+          const pastVisits = (beacon.visits ?? []).map((visit, index) => ({
+            key: `${beacon.id}-visit-${index}-${visit.startedAt}`,
+            worker: beacon.worker,
+            beaconLabel: beacon.label,
+            stationName: stationNameById[visit.stationId] ?? visit.stationId,
+            durationMs: visit.durationMs ?? Math.max(0, (visit.endedAt ?? now) - visit.startedAt),
+            startedAt: visit.startedAt,
+            endedAt: visit.endedAt,
+            active: false,
+          }));
+
+          const activeVisits = Object.entries(beacon.activeStations ?? {}).map(
+            ([stationId, startedAt]) => ({
+              key: `${beacon.id}-active-${stationId}`,
+              worker: beacon.worker,
+              beaconLabel: beacon.label,
+              stationName: stationNameById[stationId] ?? stationId,
+              durationMs: Math.max(0, now - startedAt),
+              startedAt,
+              active: true,
+            })
+          );
+
+          return [...pastVisits, ...activeVisits];
+        })
+        .sort((a, b) => b.startedAt - a.startedAt),
+    [beacons, now, selectedSiteId, stationNameById]
   );
 
   const handlePlacementClick = (coords: LatLngLiteral) => {
@@ -129,6 +174,7 @@ export default function App() {
       worker,
       siteId: selectedSiteId ?? constructionSites[0]?.id ?? 'default-site',
       distances: {},
+      activeStations: {},
       totalMs: 0,
       visits: [],
     };
@@ -140,24 +186,45 @@ export default function App() {
     setBeacons((prev) =>
       prev.map((beacon) => {
         if (beacon.id !== beaconId) return beacon;
-        const now = Date.now();
-        const isLeavingSameStation = beacon.activeBaseStationId === baseStationId;
-        const elapsed = beacon.timeStartedAt ? now - beacon.timeStartedAt : 0;
 
-        if (isLeavingSameStation) {
+        const now = Date.now();
+        const activeStations = { ...(beacon.activeStations ?? {}) };
+        const wasActive = Boolean(activeStations[baseStationId]);
+        let presenceStartedAt = beacon.presenceStartedAt;
+        let totalMs = beacon.totalMs;
+        const visits = [...(beacon.visits ?? [])];
+
+        if (wasActive) {
+          const startedAt = activeStations[baseStationId] ?? now;
+          const durationMs = Math.max(0, now - startedAt);
+          delete activeStations[baseStationId];
+          visits.push({ stationId: baseStationId, startedAt, endedAt: now, durationMs });
+
+          if (Object.keys(activeStations).length === 0 && presenceStartedAt) {
+            totalMs += now - presenceStartedAt;
+            presenceStartedAt = undefined;
+          }
+
           return {
             ...beacon,
-            activeBaseStationId: undefined,
-            timeStartedAt: undefined,
-            totalMs: beacon.totalMs + elapsed,
+            activeStations,
+            presenceStartedAt,
+            totalMs,
+            visits,
           };
+        }
+
+        activeStations[baseStationId] = now;
+        if (!presenceStartedAt) {
+          presenceStartedAt = now;
         }
 
         return {
           ...beacon,
-          activeBaseStationId: baseStationId,
-          timeStartedAt: now,
-          totalMs: beacon.totalMs + (beacon.timeStartedAt ? elapsed : 0),
+          activeStations,
+          presenceStartedAt,
+          totalMs,
+          visits,
         };
       })
     );
@@ -230,7 +297,9 @@ export default function App() {
             </div>
             <div className="presence-cards">
               {prioritizedBeacons.map((beacon) => {
-                const activeStation = siteBaseStations.find((s) => s.id === beacon.activeBaseStationId);
+                const activeStations = siteBaseStations.filter((s) =>
+                  Boolean(beacon.activeStations?.[s.id])
+                );
                 return (
                   <div key={beacon.id} className="presence-card">
                     <div className="presence-line">
@@ -239,8 +308,8 @@ export default function App() {
                     </div>
                     <p className="presence-metric">Aufenthalt gesamt: {formatMillis(getElapsedMs(beacon))}</p>
                     <p className="presence-status">
-                      {activeStation
-                        ? `Im Bereich von ${activeStation.name}`
+                      {activeStations.length
+                        ? `Im Bereich von ${activeStations.map((s) => s.name).join(', ')}`
                         : 'Aktuell außerhalb aller Zonen'}
                     </p>
                   </div>
@@ -366,6 +435,41 @@ export default function App() {
         </section>
       </main>
 
+      <section className="history-section">
+        <div className="card history-card">
+          <div className="history-heading">
+            <div>
+              <p className="eyebrow">Beacon &amp; Arbeiter Debug</p>
+              <h3>Aufenthaltsprotokoll</h3>
+              <p className="muted small">
+                Mehrere Stationen können gleichzeitig im Empfang sein; hier siehst du die Stationen,
+                Aufenthaltszeiten und laufende Sessions pro Person.
+              </p>
+            </div>
+            <span className="pill outline">Fokus: Zeit im Bereich</span>
+          </div>
+
+          <ul className="visit-list">
+            {visitHistory.map((entry) => (
+              <li key={entry.key} className="visit-row">
+                <div className="visit-person">
+                  <div className="visit-line">
+                    <strong>{entry.worker}</strong>
+                    <span className="pill subtle">{entry.beaconLabel}</span>
+                  </div>
+                  <div className="muted small">Station: {entry.stationName}</div>
+                </div>
+                <div className="visit-duration">{formatMillis(entry.durationMs)}</div>
+                <div className={`pill ${entry.active ? 'success' : 'subtle'}`}>
+                  {entry.active ? 'live' : 'abgeschlossen'}
+                </div>
+              </li>
+            ))}
+            {visitHistory.length === 0 && <li className="muted">Noch keine Aufenthaltsdaten vorhanden.</li>}
+          </ul>
+        </div>
+      </section>
+
       {selectedBeacon && (
         <footer className="footer">
           <div>
@@ -376,8 +480,11 @@ export default function App() {
             </div>
           </div>
           <div className="pill subtle">
-            {selectedBeacon.activeBaseStationId
-              ? `Im Bereich von ${siteBaseStations.find((s) => s.id === selectedBeacon.activeBaseStationId)?.name ?? 'Station'}`
+            {Object.keys(selectedBeacon.activeStations ?? {}).length
+              ? `Im Bereich von ${siteBaseStations
+                  .filter((s) => selectedBeacon.activeStations?.[s.id])
+                  .map((s) => s.name)
+                  .join(', ')}`
               : 'Aktuell außerhalb aller Zonen'}
           </div>
         </footer>
