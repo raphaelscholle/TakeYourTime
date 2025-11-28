@@ -1,27 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MapContainer, Marker, Popup, TileLayer, useMapEvents } from 'react-leaflet';
 import { Icon, LatLngExpression, LatLngLiteral } from 'leaflet';
 import { formatDuration, intervalToDuration } from 'date-fns';
 import { BaseStationForm } from './components/BaseStationForm';
 import { EmployeePanel } from './components/EmployeePanel';
-import { EmployeeLocation } from './types';
+import { BaseStation, Employee, EmployeeLocation } from './types';
 import { calculateTrilateration } from './lib/trilateration';
+import { sampleBaseStations, sampleEmployees } from './lib/sampleData';
 
 const defaultCenter: LatLngExpression = [48.1351, 11.582];
-
-export type BaseStation = {
-  id: string;
-  name: string;
-  position: LatLngLiteral;
-};
-
-export type Employee = {
-  id: string;
-  name: string;
-  distances: Record<string, number>;
-  timeStartedAt?: number;
-  totalMs: number;
-};
 
 const baseIcon = new Icon({
   iconUrl:
@@ -50,11 +37,11 @@ function formatMillis(ms: number) {
 }
 
 export default function App() {
-  const [baseStations, setBaseStations] = useState<BaseStation[]>([]);
+  const [baseStations, setBaseStations] = useState<BaseStation[]>(sampleBaseStations);
   const [placementMode, setPlacementMode] = useState<boolean>(false);
   const [pendingStationName, setPendingStationName] = useState('');
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | undefined>();
+  const [employees, setEmployees] = useState<Employee[]>(sampleEmployees);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | undefined>(sampleEmployees[0]?.id);
   const [employeeLocations, setEmployeeLocations] = useState<Record<string, EmployeeLocation | undefined>>({});
 
   const selectedEmployee = employees.find((emp) => emp.id === selectedEmployeeId);
@@ -128,6 +115,11 @@ export default function App() {
   };
 
   const activeLocations = useMemo(() => Object.entries(employeeLocations), [employeeLocations]);
+
+  useEffect(() => {
+    employees.forEach((employee) => computeEmployeeLocation(employee.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employees, baseStations]);
 
   return (
     <div className="page">
