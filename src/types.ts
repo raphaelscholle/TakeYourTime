@@ -21,8 +21,8 @@ export type Beacon = {
   worker: string;
   siteId: string;
   distances: Record<string, number>;
-  timeStartedAt?: number;
-  activeBaseStationId?: string;
+  activeStations?: Record<string, number>;
+  presenceStartedAt?: number;
   totalMs: number;
   visits?: BeaconVisit[];
 };
