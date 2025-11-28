@@ -1,12 +1,10 @@
 import { useMemo, useState } from 'react';
 import { BaseStation, Beacon } from '../types';
-import { formatMillis } from '../lib/time';
 
 interface Props {
   baseStations: BaseStation[];
   beacons: Beacon[];
   selectedBeaconId?: string;
-  clock: number;
   onSelectBeacon: (id: string) => void;
   onBeaconCreate: (worker: string, label: string) => void;
   onDistanceChange: (beaconId: string, baseStationId: string, distance: number) => void;
@@ -18,7 +16,6 @@ export function BeaconPanel({
   baseStations,
   beacons,
   selectedBeaconId,
-  clock,
   onSelectBeacon,
   onBeaconCreate,
   onDistanceChange,
@@ -32,36 +29,6 @@ export function BeaconPanel({
     () => beacons.find((beacon) => beacon.id === selectedBeaconId),
     [beacons, selectedBeaconId]
   );
-
-  const stationDurations = useMemo(() => {
-    if (!selectedBeacon) return [];
-    return baseStations.map((station) => {
-      const totalMs = (selectedBeacon.visits ?? []).reduce((sum, visit) => {
-        if (visit.stationId !== station.id) return sum;
-        const duration = visit.durationMs ?? Math.max(0, (visit.endedAt ?? clock) - visit.startedAt);
-        return sum + duration;
-      }, 0);
-
-      const liveAddition =
-        selectedBeacon.activeBaseStationId === station.id && selectedBeacon.timeStartedAt
-          ? Math.max(0, clock - selectedBeacon.timeStartedAt)
-          : 0;
-
-      return { station, totalMs: totalMs + liveAddition };
-    });
-  }, [baseStations, clock, selectedBeacon]);
-
-  const visitTimeline = useMemo(() => {
-    if (!selectedBeacon) return [];
-    return [...(selectedBeacon.visits ?? [])].sort((a, b) => b.startedAt - a.startedAt);
-  }, [selectedBeacon]);
-
-  const formatTime = (value: number) =>
-    new Intl.DateTimeFormat('de-DE', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    }).format(value);
 
   const handleAddBeacon = () => {
     if (!workerName.trim() || !beaconLabel.trim()) return;
@@ -127,10 +94,6 @@ export function BeaconPanel({
       {selectedBeacon && (
         <div className="card nested">
           <h3>Signalbereich für {selectedBeacon.worker}</h3>
-          <p className="muted small">
-            Fokus auf Aufenthaltsdauer: Zeiten pro Basestation erfassen und chronologisch nachvollziehen,
-            wann {selectedBeacon.worker} wo anwesend war.
-          </p>
           {baseStations.length === 0 && (
             <p className="muted">Stationen hinzufügen, um Distanzen zu erfassen.</p>
           )}
@@ -158,50 +121,6 @@ export function BeaconPanel({
               </button>
             </div>
           ))}
-
-          <div className="duration-grid">
-            {stationDurations.map(({ station, totalMs }) => (
-              <div className="duration-card" key={station.id}>
-                <div className="muted small">{station.name}</div>
-                <div className="duration-value">{formatMillis(totalMs)}</div>
-                {selectedBeacon.activeBaseStationId === station.id && (
-                  <span className="pill subtle">gerade im Sichtfeld</span>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="history-block">
-            <div className="history-heading">
-              <h4>Aufenthaltsverlauf</h4>
-              <span className="pill outline">
-                {visitTimeline.length} {visitTimeline.length === 1 ? 'Messung' : 'Messungen'}
-              </span>
-            </div>
-            {visitTimeline.length === 0 && <p className="muted">Noch keine Aufenthalte erfasst.</p>}
-            {visitTimeline.length > 0 && (
-              <ul className="visit-list">
-                {visitTimeline.map((visit, index) => {
-                  const stationName =
-                    baseStations.find((station) => station.id === visit.stationId)?.name ?? 'Station';
-                  const duration = formatMillis(
-                    visit.durationMs ?? Math.max(0, (visit.endedAt ?? clock) - visit.startedAt)
-                  );
-                  return (
-                    <li className="visit-row" key={`${visit.stationId}-${visit.startedAt}-${index}`}>
-                      <div>
-                        <strong>{stationName}</strong>
-                        <div className="muted small">
-                          {formatTime(visit.startedAt)} – {visit.endedAt ? formatTime(visit.endedAt) : 'läuft'}
-                        </div>
-                      </div>
-                      <span className="pill subtle">{duration}</span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
 
           <button
             type="button"

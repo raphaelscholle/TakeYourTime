@@ -6,7 +6,6 @@ import { BeaconPanel } from './components/BeaconPanel';
 import { BaseStation, Beacon, ConstructionSite, EmployeeLocation } from './types';
 import { calculateTrilateration } from './lib/trilateration';
 import { sampleBaseStations, sampleBeacons, sampleConstructionSites } from './lib/sampleData';
-import { formatMillis } from './lib/time';
 
 const defaultCenter: LatLngExpression = [48.1351, 11.582];
 
@@ -40,12 +39,7 @@ export default function App() {
   const [beacons, setBeacons] = useState<Beacon[]>(sampleBeacons);
   const [selectedBeaconId, setSelectedBeaconId] = useState<string | undefined>(sampleBeacons[0]?.id);
   const [beaconLocations, setBeaconLocations] = useState<Record<string, EmployeeLocation | undefined>>({});
-  const [clock, setClock] = useState(Date.now());
-
-  useEffect(() => {
-    const interval = window.setInterval(() => setClock(Date.now()), 1000);
-    return () => window.clearInterval(interval);
-  }, []);
+  const [now, setNow] = useState(Date.now());
 
   const currentSite = useMemo(
     () => constructionSites.find((site) => site.id === selectedSiteId),
@@ -68,6 +62,11 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSiteId, siteBeacons]);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
   const activeLocations = useMemo(() => Object.entries(beaconLocations), [beaconLocations]);
   const selectedBeacon = beacons.find((emp) => emp.id === selectedBeaconId);
   const totalDistanceEntries = useMemo(
@@ -82,6 +81,20 @@ export default function App() {
     [activeLocations, siteBeacons]
   );
   const activeTimers = useMemo(() => siteBeacons.filter((emp) => emp.timeStartedAt).length, [siteBeacons]);
+
+  const getElapsedMs = (beacon: Beacon) =>
+    beacon.totalMs + (beacon.timeStartedAt ? now - beacon.timeStartedAt : 0);
+
+  const prioritizedBeacons = useMemo(
+    () =>
+      [...siteBeacons].sort((a, b) => {
+        const aActive = Boolean(a.activeBaseStationId);
+        const bActive = Boolean(b.activeBaseStationId);
+        if (aActive !== bActive) return Number(bActive) - Number(aActive);
+        return getElapsedMs(b) - getElapsedMs(a);
+      }),
+    [siteBeacons, now]
+  );
 
   const handlePlacementClick = (coords: LatLngLiteral) => {
     if (!placementMode || !pendingStationName.trim() || !selectedSiteId) return;
@@ -126,23 +139,9 @@ export default function App() {
     setBeacons((prev) =>
       prev.map((beacon) => {
         if (beacon.id !== beaconId) return beacon;
-        const visits = beacon.visits ?? [];
         const now = Date.now();
         const isLeavingSameStation = beacon.activeBaseStationId === baseStationId;
         const elapsed = beacon.timeStartedAt ? now - beacon.timeStartedAt : 0;
-
-        const closeVisit = (stationId: string, currentVisits: typeof visits) => {
-          const idx = currentVisits.findIndex((visit) => visit.stationId === stationId && !visit.endedAt);
-          if (idx === -1) return currentVisits;
-          const visit = currentVisits[idx];
-          const updated = [...currentVisits];
-          updated[idx] = {
-            ...visit,
-            endedAt: now,
-            durationMs: (visit.durationMs ?? 0) + Math.max(0, now - visit.startedAt),
-          };
-          return updated;
-        };
 
         if (isLeavingSameStation) {
           return {
@@ -150,18 +149,6 @@ export default function App() {
             activeBaseStationId: undefined,
             timeStartedAt: undefined,
             totalMs: beacon.totalMs + elapsed,
-            visits: closeVisit(baseStationId, visits),
-          };
-        }
-
-        if (beacon.activeBaseStationId) {
-          const closedVisits = closeVisit(beacon.activeBaseStationId, visits);
-          return {
-            ...beacon,
-            activeBaseStationId: baseStationId,
-            timeStartedAt: now,
-            totalMs: beacon.totalMs + elapsed,
-            visits: [...closedVisits, { stationId: baseStationId, startedAt: now }],
           };
         }
 
@@ -170,7 +157,6 @@ export default function App() {
           activeBaseStationId: baseStationId,
           timeStartedAt: now,
           totalMs: beacon.totalMs + (beacon.timeStartedAt ? elapsed : 0),
-          visits: [...visits, { stationId: baseStationId, startedAt: now }],
         };
       })
     );
@@ -228,10 +214,39 @@ export default function App() {
             </div>
           </div>
           <p className="subtitle">
-            Fokus auf Zeiterfassung: Aufenthaltszeiten in Sichtweite aller Basestations nachvollziehen,
-            pro Station die Dauer dokumentieren und den Verlauf transparent halten. Die Karte bleibt als
-            visuelle Ergänzung erhalten.
+            Mehrere Baustellen mit eigenen Basistationen orchestrieren, BLE-Beacons koppeln und
+            Aufenthaltszeiten automatisch erfassen sobald ein Worker in Reichweite kommt. Die
+            Karte liefert Triangulation aus allen erreichbaren Stationen.
           </p>
+
+          <div className="presence-strip">
+            <div className="presence-header">
+              <p className="eyebrow">Aufenthaltszeiten live</p>
+              <p className="muted small">
+                Jeder Mitarbeiter mit Beacon und aktuellem Aufenthaltsstatus, priorisiert nach
+                aktiver Funkreichweite.
+              </p>
+            </div>
+            <div className="presence-cards">
+              {prioritizedBeacons.map((beacon) => {
+                const activeStation = siteBaseStations.find((s) => s.id === beacon.activeBaseStationId);
+                return (
+                  <div key={beacon.id} className="presence-card">
+                    <div className="presence-line">
+                      <strong>{beacon.worker}</strong>
+                      <span className="pill subtle">{beacon.label}</span>
+                    </div>
+                    <p className="presence-metric">Aufenthalt gesamt: {formatMillis(getElapsedMs(beacon))}</p>
+                    <p className="presence-status">
+                      {activeStation
+                        ? `Im Bereich von ${activeStation.name}`
+                        : 'Aktuell außerhalb aller Zonen'}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         <div className="stat-grid">
@@ -273,7 +288,6 @@ export default function App() {
             baseStations={siteBaseStations}
             beacons={siteBeacons}
             selectedBeaconId={selectedBeaconId}
-            clock={clock}
             onSelectBeacon={setSelectedBeaconId}
             onBeaconCreate={upsertBeacon}
             onDistanceChange={upsertDistance}
@@ -357,10 +371,7 @@ export default function App() {
             <strong>{selectedBeacon.worker}</strong> · {selectedBeacon.label}
             <div className="time">
               Aufenthalt gesamt:{' '}
-              {formatMillis(
-                selectedBeacon.totalMs +
-                  (selectedBeacon.timeStartedAt ? clock - selectedBeacon.timeStartedAt : 0)
-              )}
+              {formatMillis(getElapsedMs(selectedBeacon))}
             </div>
           </div>
           <div className="pill subtle">

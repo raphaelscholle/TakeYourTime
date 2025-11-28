@@ -64,6 +64,58 @@ body {
   max-width: 60ch;
 }
 
+.presence-strip {
+  margin-top: 1rem;
+  background: rgba(15, 23, 42, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+  padding: 0.9rem 1rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 14px 36px rgba(15, 23, 42, 0.28);
+}
+
+.presence-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.presence-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.65rem;
+}
+
+.presence-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.12));
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  padding: 0.8rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.15);
+}
+
+.presence-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+}
+
+.presence-metric {
+  margin: 0;
+  font-weight: 700;
+}
+
+.presence-status {
+  margin: 0;
+  color: #dbeafe;
+  font-size: 0.95rem;
+}
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
