@@ -36,3 +36,21 @@ npm run dev:remote
 - Also lists the detected IPv4 addresses for quick copy/paste.
 
 If no external IPv4 is detected, both scripts will fall back to `localhost`.
+
+## Install Mosquitto on Debian
+
+Use the helper script to install and configure an MQTT broker with a generated username/password:
+
+```bash
+sudo ./scripts/setup-mosquitto-debian.sh
+```
+
+The script prints the MQTT credentials and port once installation is complete. You can test locally with:
+
+```bash
+mosquitto_sub -h localhost -p 1883 -u <user> -P '<password>' -t '#'
+```
+
+## ESP32 BLE beacon bridge
+
+The `esp32/ble-beacon-mqtt-client` sketch connects an ESP32 to Wi-Fi, signs in to the Mosquitto broker, and publishes detected BLE beacon advertisements to the `ble/beacons` topic. Update the configuration constants at the top of `ble_beacon_mqtt_client.ino` before flashing.
