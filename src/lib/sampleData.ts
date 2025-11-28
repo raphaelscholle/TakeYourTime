@@ -80,6 +80,7 @@ export const sampleBeacons: Beacon[] = [
       'beacon-north': 110,
     },
     totalMs: 0,
+    visits: [],
   },
   {
     id: 'ben',
@@ -92,6 +93,7 @@ export const sampleBeacons: Beacon[] = [
       'beacon-south': 70,
     },
     totalMs: 0,
+    visits: [],
   },
   {
     id: 'carla',
@@ -104,5 +106,6 @@ export const sampleBeacons: Beacon[] = [
       'augsburg-c': 90,
     },
     totalMs: 0,
+    visits: [],
   },
 ];
