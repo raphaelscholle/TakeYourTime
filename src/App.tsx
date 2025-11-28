@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { MapContainer, Marker, Popup, TileLayer, useMapEvents } from 'react-leaflet';
 import { Icon, LatLngExpression, LatLngLiteral } from 'leaflet';
-import { formatDuration, intervalToDuration } from 'date-fns';
 import { BaseStationForm } from './components/BaseStationForm';
 import { BeaconPanel } from './components/BeaconPanel';
 import { BaseStation, Beacon, ConstructionSite, EmployeeLocation } from './types';
@@ -29,11 +28,6 @@ function MapClickHandler({
   });
 
   return null;
-}
-
-function formatMillis(ms: number) {
-  const duration = intervalToDuration({ start: 0, end: ms });
-  return formatDuration(duration, { delimiter: ', ' }) || '0 Sekunden';
 }
 
 export default function App() {
@@ -135,6 +129,7 @@ export default function App() {
       siteId: selectedSiteId ?? constructionSites[0]?.id ?? 'default-site',
       distances: {},
       totalMs: 0,
+      visits: [],
     };
     setBeacons((prev) => [...prev, newBeacon]);
     setSelectedBeaconId(newBeacon.id);

@@ -24,10 +24,18 @@ export type Beacon = {
   timeStartedAt?: number;
   activeBaseStationId?: string;
   totalMs: number;
+  visits?: BeaconVisit[];
 };
 
 export type EmployeeLocation = {
   position: LatLngLiteral;
   estimatedError: number;
   usedStations: Array<BaseStation & { distance: number }>;
+};
+
+export type BeaconVisit = {
+  stationId: string;
+  startedAt: number;
+  endedAt?: number;
+  durationMs?: number;
 };
