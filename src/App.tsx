@@ -6,6 +6,7 @@ import { BeaconPanel } from './components/BeaconPanel';
 import { BaseStation, Beacon, ConstructionSite, EmployeeLocation } from './types';
 import { calculateTrilateration } from './lib/trilateration';
 import { sampleBaseStations, sampleBeacons, sampleConstructionSites } from './lib/sampleData';
+import { formatMillis } from './lib/time';
 
 const defaultCenter: LatLngExpression = [48.1351, 11.582];
 
