@@ -8,10 +8,13 @@
     "dev:remote": "node scripts/dev-remote.mjs",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "start:api": "node server.mjs"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "date-fns": "^3.6.0",
+    "express": "^5.1.0",
     "leaflet": "^1.9.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
